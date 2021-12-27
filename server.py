@@ -1,23 +1,26 @@
+from ctypes import addressof
 import socket
 import random
 import threading
 import time
 import struct
 FORMAT="utf-8"
+
 #return a random question and its answer
 def QuestionGenerator():
-#returns a tuple of (question str,answer-int)
+     #returns a tuple of (question str,answer-int)
      n1=random.randint(-20,20)
      n2=random.randint(-20,20)
      return (n1+n2,str(n1)+"+"+str(n2)+"?")   
-
-
+     
 def handleClient(client,adress):
      true_answer,ans_from_client="",""
      ctr=0     
-     print(thread.getName())
+     #print(thread.getName())
+     while(WAIT_FOR_START):
+          pass
      name_of_client=client.recv(2048)
-     print("welcome:"+str(name_of_client.decode("utf-8")))
+     print("Welcome to Quick Maths. "+str(name_of_client.decode("utf-8")))
      while(str(true_answer)==ans_from_client):  
           true_answer,question=QuestionGenerator()
           client.send(bytes(question,"utf-8"))
@@ -30,100 +33,49 @@ def handleClient(client,adress):
      ctr-=1          
      client.send(bytes("total score:"+str(ctr),FORMAT))     
      client.close()
+
 def Broadcasting():
-     group = '224.1.1.1'
-     port = 1234
+     address = socket.gethostbyname(socket.gethostname())
      # 2-hop restriction in network
      ttl = 2
      sock = socket.socket(socket.AF_INET,
                      socket.SOCK_DGRAM,
                      socket.IPPROTO_UDP)
-     sock.setsockopt(socket.IPPROTO_IP,
-                socket.IP_MULTICAST_TTL,
-                ttl)
+     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-     udp_packet=struct.pack('LBh',0xabcddcba,0x2,port)    
-            
+     udp_packet=struct.pack('LBh',0xabcddcba,0x2,TCP_PORT)    
+     print("UNICORN server started, listening on IP address: "+ str(address))
      while STOP_BROADCAST:
-          sock.sendto(udp_packet, (group, 13117))
+          sock.sendto(udp_packet, ('<broadcast>', 13117))
           time.sleep(1)
-          print("sending again")   
+          print("sending again")#delete in the end
+
+#argument definition and initialization
 global STOP_BROADCAST
 STOP_BROADCAST=True
+SERVER_IP=socket.gethostbyname(socket.gethostname())
 TCP_PORT=1234
-MYPORT = 13117
+global WAIT_FOR_START
+WAIT_FOR_START = True
+
+#starting sending offers
 udp_thread=threading.Thread(target=Broadcasting)
 udp_thread.start()
-ip=socket.gethostbyname(socket.gethostname())
-port=1234
-server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((ip,port))
-server.listen(2)#number of clients?
+
+#TCP connection establishment
+server_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((SERVER_IP,TCP_PORT))
+server_socket.listen()#number of clients?
 max_Client=2
 connected_Clients=0
 while connected_Clients<max_Client:
-     client, adress=server.accept()
+     client, adress=server_socket.accept()
      connected_Clients+=1
      thread=threading.Thread(target=handleClient, args=(client,adress))
      print("connection established: number of clients:"+str(connected_Clients))
      thread.start()
+#now we have 2 clients connected to the server
 STOP_BROADCAST=False
-  
- 
-     
-
-
-
-
-
-
-
-# def Broadcasting():
-#      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#      s.bind(('', 5555))
-#      s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-#      while 1:
-#           # first_part=0xabcddcba+0x2
-#           data =TCP_PORT
-#           s.sendto(bytes(str(data),FORMAT), ('255.255.255.255', MYPORT))
-#           time.sleep(2)
-
-
-# TCP_PORT=1234
-# MYPORT = 13117
-# udp_thread=threading.Thread(target=Broadcasting)
-# udp_thread.start()
-# ip=socket.gethostbyname(socket.gethostname())
-# port=1234
-# server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# server.bind((ip,port))
-# server.listen(2)#number of clients?
-# ctr=0
-# while(True):
-#      if ctr<2:
-#           client, adress=server.accept()
-#           ctr+=1
-#      #thread=threading.Thread(target=handleClient, args=(client,adress))
-#      print("connection established!")
-
-
-
-     
-
-
-
-
-
-# UDP_IP = "127.0.0.1"
-# UDP_PORT = 13117
-# MESSAGE = b"Please Enter Our Game!!!!"
- 
-# print("UDP target IP: %s" % UDP_IP)
-# print("UDP target port: %s" % UDP_PORT)
-# print("message: %s" % MESSAGE)
-
-#      sock = socket.socket(socket.AF_INET,  socket.SOCK_DGRAM) # UDP
-#      sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))  
-#      time.sleep(2)
-#      print(i)
-
+time.sleep(2) #timer for 10 seconds
+WAIT_FOR_START = False
