@@ -6,33 +6,62 @@ import time
 import struct
 FORMAT="utf-8"
 
-#return a random question and its answer
+#unicorn photo file
+with open('unicorn.txt', 'r') as file:
+    unicorn_paint = file.read()
+
+#return a random question and its answer - (answer, question)
 def QuestionGenerator():
-     #returns a tuple of (question str,answer-int)
      n1=random.randint(-20,20)
      n2=random.randint(-20,20)
-     return (n1+n2,str(n1)+"+"+str(n2)+"?")   
-     
-def handleClient(client,adress):
-     true_answer,ans_from_client="",""
-     ctr=0     
-     #print(thread.getName())
+     return n1+n2, str(n1)+"+"+str(n2)+"?"
+
+def handleClient(client, address,true_answer, question):
+     print("I am thread number: "+ str(thread.name))
+     name_of_client=client.recv(2048)
+
+     #critical section - for adding the current player name to the list of names
+     #NAMES - is a list of tuples: (client name, thread number)
+     NAME_MUTEX.acquire()
+     NAMES.append((str(name_of_client.decode("utf-8")), thread.name))
+     NAME_MUTEX.release()
+     #end of critical section
+     #busy wait - the client waits the game to begin
      while(WAIT_FOR_START):
           pass
-     name_of_client=client.recv(2048)
-     print("Welcome to Quick Maths. "+str(name_of_client.decode("utf-8")))
-     while(str(true_answer)==ans_from_client):  
-          true_answer,question=QuestionGenerator()
-          client.send(bytes(question,"utf-8"))
-          ans_from_client=client.recv(2048)
-          ans_from_client=ans_from_client.decode("utf-8")
-          print(ans_from_client)
-          print(str(true_answer)==ans_from_client)
-          client.send(bytes(str(str(true_answer)==ans_from_client),FORMAT))
-          ctr+=1
-     ctr-=1          
-     client.send(bytes("total score:"+str(ctr),FORMAT))     
+     #game starts
+     s1 = "Welcome to the Quick Maths game of the UNICORNS\n "
+     welcome =s1 +'\n'+ unicorn_paint +'\n'+ "1. "+ str(NAMES[0]) + '\n'+ "2. " + str(NAMES[1]) +'\n' + "Answer the next question as fast as you can:" + '\n'+ str(question)
+     client.send(bytes(welcome,"utf-8"))
+     ans_from_client=client.recv(2048)
+
+     #critical section - the moment one of the players answers:
+     ANSWER_MUTEX.acquire()
+     ANSWERS.append(ans_from_client.decode("utf-8"))
+     #current player answered correctly - he wins.
+     if (ANSWERS[0] == str(true_answer)):
+          print("I am thread number: "+ str(thread.name))
+          print(name_of_client.decode("utf-8"))
+          WINNERS.append(name_of_client.decode("utf-8"))
+     else: #current player was wrong - the other player wins.
+          for name in NAMES:
+               print("I am thread number: "+ str(thread.name))
+               print("i am in the for loop")
+               print("I am thread number: "+ str(thread.name))
+               print(name[1])
+               print("I am thread number: "+ str(thread.name))
+               print(thread.name)
+               if name[1] != thread.name:
+                    print("I am thread number: "+ str(thread.name))
+                    print("name in the else ")
+                    print("I am thread number: "+ str(thread.name))
+                    print(name)
+                    WINNERS.append(name)
+     game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
+     client.send(bytes(game_over,"utf-8"))
      client.close()
+     ANSWER_MUTEX.release()
+
 
 def Broadcasting():
      address = socket.gethostbyname(socket.gethostname())
@@ -58,6 +87,15 @@ SERVER_IP=socket.gethostbyname(socket.gethostname())
 TCP_PORT=1234
 global WAIT_FOR_START
 WAIT_FOR_START = True
+global NAMES
+NAMES = []
+global NAME_MUTEX
+NAME_MUTEX = threading.Lock()
+global ANSWERS
+global WINNERS
+ANSWERS = []
+WINNERS = []
+ANSWER_MUTEX = threading.Lock()
 
 #starting sending offers
 udp_thread=threading.Thread(target=Broadcasting)
@@ -69,13 +107,16 @@ server_socket.bind((SERVER_IP,TCP_PORT))
 server_socket.listen()#number of clients?
 max_Client=2
 connected_Clients=0
+true_answer, question=QuestionGenerator()
+print(true_answer)
+print(question)
 while connected_Clients<max_Client:
      client, adress=server_socket.accept()
      connected_Clients+=1
-     thread=threading.Thread(target=handleClient, args=(client,adress))
+     thread=threading.Thread(target=handleClient, args=(client,adress, true_answer, question))
      print("connection established: number of clients:"+str(connected_Clients))
      thread.start()
 #now we have 2 clients connected to the server
 STOP_BROADCAST=False
-time.sleep(2) #timer for 10 seconds
+time.sleep(10) #timer for 10 seconds
 WAIT_FOR_START = False
