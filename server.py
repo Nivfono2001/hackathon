@@ -9,7 +9,7 @@ FORMAT="utf-8"
 #unicorn photo file
 with open('unicorn.txt', 'r') as file:
     unicorn_paint = file.read()
-
+    unicorn_paint=""#DONT FORGET TO CHANGE IT!       
 #return a random question and its answer - (answer, question)
 def QuestionGenerator():
      n1=random.randint(0,4)
@@ -17,7 +17,7 @@ def QuestionGenerator():
      return n1+n2, str(n1)+"+"+str(n2)+"?"
 
 def handleClient(client, address,true_answer, question):
-     print("I am thread number: "+ str(thread.name))
+     #print("I am thread number: "+ str(thread.name))
      name_of_client=client.recv(2048)
      name_of_client=name_of_client.decode("utf-8")
 
@@ -29,34 +29,36 @@ def handleClient(client, address,true_answer, question):
      #end of critical section
      #busy wait - the client waits the game to begin
      while(WAIT_FOR_START):
-          pass
+          time.sleep(2)
      #game starts
      s1 = "Welcome to the Quick Maths game of the UNICORNS\n "
      welcome =s1 +'\n'+ unicorn_paint +'\n'+ "1. "+ str(NAMES[0]) + '\n'+ "2. " + str(NAMES[1]) +'\n' + "Answer the next question as fast as you can:" + '\n'+ str(question)
      client.send(bytes(welcome,"utf-8"))
-     ans_from_client=client.recv(2048)
-
-     #critical section - the moment one of the players answers:
-     ANSWER_MUTEX.acquire()
-     ANSWERS.append(ans_from_client.decode("utf-8"))
-     #current player answered correctly - he wins.
-     if (ANSWERS[0] == str(true_answer)):
-          WINNERS.append(name_of_client)
-     else: #current player was wrong - the other player wins.
-          for name in NAMES:
-               if name[0] != str(name_of_client):
-                    WINNERS.append(name[0])
-                    break
-     print(WINNERS)               
-     game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
-     print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
-     client.send(bytes(game_over,"utf-8"))
-     
-     ANSWER_MUTEX.release()
-     client.close()
-     global STOP_BROADCAST
-     STOP_BROADCAST=True
-
+     timout=threading.Thread(target=start_timer,args=(client,adress))
+     timout.start()
+     try:
+          ans_from_client=client.recv(2048)
+          
+          #critical section - the moment one of the players answers:
+          ANSWER_MUTEX.acquire()
+          ANSWERS.append(ans_from_client.decode("utf-8"))
+          #current player answered correctly - he wins.
+          if (ANSWERS[0] == str(true_answer)):
+               WINNERS.append(name_of_client)
+          else: #current player was wrong - the other player wins.
+               for name in NAMES:
+                    if name[0] != str(name_of_client):
+                         WINNERS.append(name[0])
+                         break
+          game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
+          print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
+          client.send(bytes(game_over,"utf-8"))
+          ANSWER_MUTEX.release()
+          client.close()
+          global STOP_BROADCAST
+          STOP_BROADCAST=True
+     except:
+          print("client run out of time")     
 
 def Broadcasting():
      address = socket.gethostbyname(socket.gethostname())
@@ -68,14 +70,25 @@ def Broadcasting():
      sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
      sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-     udp_packet=struct.pack('LBh',0xabcddcba,0x2,TCP_PORT)    
+     udp_packet=struct.pack('IbH',0xabcddcba,0x2,TCP_PORT)    
      print("UNICORN server started, listening on IP address: "+ str(address))
      while STOP_BROADCAST:
           sock.sendto(udp_packet, ('<broadcast>', 13117))
           time.sleep(1)
           print("sending again")#delete in the end
 
-
+def start_timer(client,address):
+     print("timer started!")
+     time.sleep(10)
+     try:  
+          game_over = "Game over!\n " + "It's a tie!" 
+          print(game_over)
+          client.send(bytes(game_over,"utf-8"))
+          client.close()
+          global STOP_BROADCAST
+          STOP_BROADCAST=True
+     except:
+          print("timer stoped before end")     
 
 
 
@@ -122,9 +135,10 @@ while(ALIVE):
           thread.start()
      #now we have 2 clients connected to the server
      STOP_BROADCAST=False
-     time.sleep(5) #timer for 10 seconds
+     time.sleep(10) #timer for 10 seconds
      WAIT_FOR_START = False
      while(STOP_BROADCAST!=True):
            print("still in here...")
-           time.sleep(2)
+           time.sleep(3)
+     thread.join()
      print("Game Over, start offering new requests...")
