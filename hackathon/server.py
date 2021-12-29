@@ -4,15 +4,14 @@ import random
 import threading
 import time
 import struct
-# import colors
+#import colors
 import scapy.all
-
 FORMAT = "utf-8"
 
 # unicorn photo file
 with open('unicorn.txt', 'r') as file:
     unicorn_paint = file.read()
-    unicorn_paint = "\033[1;35;40m" + unicorn_paint
+    unicorn_paint="\033[1;35;40m"+unicorn_paint
     # unicorn_paint=""#DONT FORGET TO CHANGE IT!
 
 
@@ -36,12 +35,11 @@ def QuestionGenerator():
         return question_bank[keys[numkey]], keys[numkey]
     return n1 + n2, retval
 
-
 def handleClient(client, address, true_answer, question):
     # print("I am thread number: "+ str(thread.name))
     name_of_client = client.recv(2048)
     name_of_client = name_of_client.decode("utf-8")
-    print("client is:" + str(name_of_client))
+    print("client is:" +str(name_of_client))
     # critical section - for adding the current player name to the list of names
     # NAMES - is a list of tuples: (client name, thread number)
     NAME_MUTEX.acquire()
@@ -57,8 +55,8 @@ def handleClient(client, address, true_answer, question):
     welcome = s1 + '\n' + unicorn_paint + '\n' + "1. " + str(NAMES[0][0]) + '\n' + "2. " + str(
         NAMES[1][0]) + '\n' + "Answer the next question as fast as you can:" + '\n' + str(question)
     client.send(bytes(welcome, "utf-8"))
-    # timout = threading.Thread(target=start_timer, args=(client, adress))
-    # timout.start()
+    #timout = threading.Thread(target=start_timer, args=(client, adress))
+    #timout.start()
     try:
         client.settimeout(10)
         ans_from_client = client.recv(2048)
@@ -78,7 +76,7 @@ def handleClient(client, address, true_answer, question):
         client.send(bytes(game_over, "utf-8"))
         ANSWER_MUTEX.release()
         client.close()
-
+       
 
     except:
         print("client run out of time")
@@ -92,18 +90,18 @@ def handleClient(client, address, true_answer, question):
                 game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0])
                 print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
                 client.send(bytes(game_over, "utf-8"))
-                # ANSWER_MUTEX.release()
+            # ANSWER_MUTEX.release()
                 client.close()
 
         except:
             print("timer stoped before end")
-
+        
         global STOP_BROADCAST
         STOP_BROADCAST = True
 
 
 def Broadcasting():
-    address = scapy.all.get_if_addr('eth1')
+    address = scapy.all.get_if_addr('eth2')
     sock = socket.socket(socket.AF_INET,
                          socket.SOCK_DGRAM,
                          socket.IPPROTO_UDP)
@@ -114,9 +112,9 @@ def Broadcasting():
     print("UNICORN server started, listening on IP address: " + str(address))
     print(address)
     while STOP_BROADCAST:
-        sock.sendto(udp_packet, ('172.1.255.255', 13117))
+        sock.sendto(udp_packet, ('172.99.255.255', 13188))
         time.sleep(1)
-    # print("sending again")  # delete in the end
+       # print("sending again")  # delete in the end
 
 
 def start_timer(client, address):
@@ -133,7 +131,7 @@ def start_timer(client, address):
             game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0])
             print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
             client.send(bytes(game_over, "utf-8"))
-            # ANSWER_MUTEX.release()
+           # ANSWER_MUTEX.release()
             client.close()
 
     except:
@@ -148,8 +146,8 @@ while (ALIVE):
     # argument definition and initialization
     global STOP_BROADCAST
     STOP_BROADCAST = True
-    SERVER_IP = address = scapy.all.get_if_addr('eth1')
-
+    SERVER_IP =address = scapy.all.get_if_addr('eth2')
+    
     global STOP_THREADS
     STOP_THREADS = False
     global TCP_PORT
