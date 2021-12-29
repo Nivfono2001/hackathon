@@ -5,11 +5,12 @@ import binascii
 import getch
 import scapy.all
 logout=True
+
 while(logout):      
         port = 13188
         #UDP conversation with a random server
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)#defining broadcast
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)#defining broadcast
 
         sock.bind(('', port))
@@ -17,13 +18,8 @@ while(logout):
         print("Recieved offer from "+ str(server_address[0])+" , attempting to connect...")
 
     #connetion to server in TCP protocol
-
         pack=struct.unpack('IbH', first_pack)
         TCP_PORT=pack[2]
-        #if(pack!=int(0xabcddcba)):
-        #   raise "invalid first num"
-        #if(pack!=int(0x2)):  
-        #       raise "invalid second num"
         ip=scapy.all.get_if_addr('eth2')
         port=TCP_PORT
         server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,7 +41,4 @@ while(logout):
             print(results)  
         except:
             print("disconnected from server")     
-#print("could not enter this server")        
-#print(struct.calcsize('IbH'))
-
     

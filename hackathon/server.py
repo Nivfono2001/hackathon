@@ -4,7 +4,6 @@ import random
 import threading
 import time
 import struct
-#import colors
 import scapy.all
 FORMAT = "utf-8"
 
@@ -12,8 +11,6 @@ FORMAT = "utf-8"
 with open('unicorn.txt', 'r') as file:
     unicorn_paint = file.read()
     unicorn_paint="\033[1;35;40m"+unicorn_paint
-    # unicorn_paint=""#DONT FORGET TO CHANGE IT!
-
 
 # return a random question and its answer - (answer, question)
 def QuestionGenerator():
@@ -22,10 +19,7 @@ def QuestionGenerator():
     retval = str(n1) + "+" + str(n2) + "?"
     question_bank = {}  # dictionary of question:answer
     question_bank['Yossi is leacturer number?'] = 1
-    # question_bank['the lim(f(x)=x^2) when x->2?']=4
-    # question_bank['the norm of v=(1,0) is?']=1
-    # question_bank['The probability UNICORNS win the hackathon is?']=1
-    question_bank['How namy horns does unicorn has?'] = 1
+    question_bank['How many horns does unicorn has?'] = 1
     question_bank['which Corona wave starts now?'] = 5
     question_bank['How many `Humshey TORA` there are?'] = 5
     question_bank['How many colors there are in the rainbow spectrum?'] = 7
@@ -34,6 +28,12 @@ def QuestionGenerator():
         numkey = random.randint(0, len(keys) - 1)
         return question_bank[keys[numkey]], keys[numkey]
     return n1 + n2, retval
+
+#editing the IP address
+def edit_ip(curr_ip):
+    l=curr_ip.split(".")
+    return l[0]+"."+l[1]+"."+"255.255"
+
 
 def handleClient(client, address, true_answer, question):
     # print("I am thread number: "+ str(thread.name))
@@ -55,8 +55,6 @@ def handleClient(client, address, true_answer, question):
     welcome = s1 + '\n' + unicorn_paint + '\n' + "1. " + str(NAMES[0][0]) + '\n' + "2. " + str(
         NAMES[1][0]) + '\n' + "Answer the next question as fast as you can:" + '\n' + str(question)
     client.send(bytes(welcome, "utf-8"))
-    #timout = threading.Thread(target=start_timer, args=(client, adress))
-    #timout.start()
     try:
         client.settimeout(10)
         ans_from_client = client.recv(2048)
@@ -76,8 +74,6 @@ def handleClient(client, address, true_answer, question):
         client.send(bytes(game_over, "utf-8"))
         ANSWER_MUTEX.release()
         client.close()
-       
-
     except:
         print("client run out of time")
         try:
@@ -90,7 +86,6 @@ def handleClient(client, address, true_answer, question):
                 game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0])
                 print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
                 client.send(bytes(game_over, "utf-8"))
-            # ANSWER_MUTEX.release()
                 client.close()
 
         except:
@@ -112,42 +107,16 @@ def Broadcasting():
     print("UNICORN server started, listening on IP address: " + str(address))
     print(address)
     while STOP_BROADCAST:
-        sock.sendto(udp_packet, ('172.99.255.255', 13188))
+        sock.sendto(udp_packet, (edit_ip(address), 13188))
         time.sleep(1)
-       # print("sending again")  # delete in the end
 
-
-def start_timer(client, address):
-    print("timer started!")
-    time.sleep(10)
-    try:
-        ANSWER_MUTEX.acquire()
-        if len(WINNERS) == 0:
-            game_over = "Game over!\n " + "It's a tie!"
-            client.send(bytes(game_over, "utf-8"))
-            print(game_over)
-            client.close()
-        else:
-            game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0])
-            print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
-            client.send(bytes(game_over, "utf-8"))
-           # ANSWER_MUTEX.release()
-            client.close()
-
-    except:
-        print("timer stoped before end")
-    ANSWER_MUTEX.release()
-    global STOP_BROADCAST
-    STOP_BROADCAST = True
-
-
+#### Main Thread ####
 ALIVE = True
 while (ALIVE):
     # argument definition and initialization
     global STOP_BROADCAST
     STOP_BROADCAST = True
     SERVER_IP =address = scapy.all.get_if_addr('eth2')
-    
     global STOP_THREADS
     STOP_THREADS = False
     global TCP_PORT
@@ -169,7 +138,6 @@ while (ALIVE):
     udp_thread.start()
 
     # TCP connection establishment
-
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((SERVER_IP, TCP_PORT))
@@ -187,7 +155,8 @@ while (ALIVE):
         thread.start()
     # now we have 2 clients connected to the server
     STOP_BROADCAST = False
-    time.sleep(5)  # timer for 10 seconds
+    time.sleep(10)  # timer for 10 seconds
+    #now we can start the game
     WAIT_FOR_START = False
     while (STOP_BROADCAST != True):
         print("still in here...")
