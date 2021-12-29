@@ -38,7 +38,6 @@ def handleClient(client, address,true_answer, question):
      timout.start()
      try:
           ans_from_client=client.recv(2048)
-          
           #critical section - the moment one of the players answers:
           ANSWER_MUTEX.acquire()
           ANSWERS.append(ans_from_client.decode("utf-8"))
@@ -53,13 +52,14 @@ def handleClient(client, address,true_answer, question):
           game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
           print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
           client.send(bytes(game_over,"utf-8"))
-          ANSWER_MUTEX.release()
           client.close()
-          global STOP_BROADCAST
-          STOP_BROADCAST=True
+          
      except:
           print("client run out of time")     
-
+     ANSWER_MUTEX.release()
+     timout.join()
+     global STOP_BROADCAST
+     STOP_BROADCAST=True
 def Broadcasting():
      address = socket.gethostbyname(socket.gethostname())
      # 2-hop restriction in network
@@ -80,17 +80,24 @@ def Broadcasting():
 def start_timer(client,address):
      print("timer started!")
      time.sleep(10)
+     ANSWER_MUTEX.acquire()
      try:  
-          game_over = "Game over!\n " + "It's a tie!" 
-          print(game_over)
-          client.send(bytes(game_over,"utf-8"))
-          client.close()
-          global STOP_BROADCAST
-          STOP_BROADCAST=True
+          if len(WINNERS)==0:
+               game_over = "Game over!\n " + "It's a tie!" 
+               client.send(bytes(game_over,"utf-8"))
+               print(game_over)
+               client.close()
+          else:
+               game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
+               print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
+               client.send(bytes(game_over,"utf-8"))
+               client.close()
+
      except:
           print("timer stoped before end")     
-
-
+     ANSWER_MUTEX.release()
+     global STOP_BROADCAST     
+     STOP_BROADCAST=True
 
 
 
@@ -101,7 +108,7 @@ while(ALIVE):
      global STOP_BROADCAST
      STOP_BROADCAST=True
      SERVER_IP=socket.gethostbyname(socket.gethostname())
-     TCP_PORT=1234
+     TCP_PORT=2019
      global WAIT_FOR_START
      WAIT_FOR_START = True
      global NAMES
