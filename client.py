@@ -2,8 +2,8 @@ import socket
 import struct
 import time
 import binascii
-
-while(True):
+logout=True
+while(logout):
     try:  
         port = 13117
         #UDP conversation with a random server
@@ -44,9 +44,10 @@ while(True):
             print(results)  
         except:
             print("disconnected from server")
+            logout=False   
+
     except:
         print("could not enter this server")        
-           
 #print("could not enter this server")        
 #print(struct.calcsize('IbH'))
 

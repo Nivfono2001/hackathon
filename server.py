@@ -4,6 +4,7 @@ import random
 import threading
 import time
 import struct
+import colors
 FORMAT="utf-8"
 
 #unicorn photo file
@@ -14,7 +15,21 @@ with open('unicorn.txt', 'r') as file:
 def QuestionGenerator():
      n1=random.randint(0,4)
      n2=random.randint(0,4)
-     return n1+n2, str(n1)+"+"+str(n2)+"?"
+     retval=str(n1)+"+"+str(n2)+"?"
+     question_bank={}#dictionary of question:answer
+     question_bank['Yossi is leacturer number?']=1
+    # question_bank['the lim(f(x)=x^2) when x->2?']=4
+    # question_bank['the norm of v=(1,0) is?']=1
+    # question_bank['The probability UNICORNS win the hackathon is?']=1
+     question_bank['How namy horns does unicorn has?']=1
+     question_bank['which Corona wave starts now?']=5
+     question_bank['How many `Humshey TORA` there are?']=5
+     question_bank['How many colors there are in the rainbow spectrum?']=7     
+     if random.randint(0,10)>7:
+        keys=list(question_bank.keys())
+        numkey= random.randint(0,len(keys)-1)  
+        return question_bank[keys[numkey]], keys[numkey]      
+     return n1+n2, retval
 
 def handleClient(client, address,true_answer, question):
      #print("I am thread number: "+ str(thread.name))
@@ -31,13 +46,15 @@ def handleClient(client, address,true_answer, question):
      while(WAIT_FOR_START):
           time.sleep(2)
      #game starts
-     s1 = "Welcome to the Quick Maths game of the UNICORNS\n "
+     s1 = colors.colorText("[[red]]Welcome to the Quick Maths game of the [[yellow]]UNICORNS\n")
+     print(s1)
      welcome =s1 +'\n'+ unicorn_paint +'\n'+ "1. "+ str(NAMES[0]) + '\n'+ "2. " + str(NAMES[1]) +'\n' + "Answer the next question as fast as you can:" + '\n'+ str(question)
      client.send(bytes(welcome,"utf-8"))
      timout=threading.Thread(target=start_timer,args=(client,adress))
      timout.start()
      try:
           ans_from_client=client.recv(2048)
+          
           #critical section - the moment one of the players answers:
           ANSWER_MUTEX.acquire()
           ANSWERS.append(ans_from_client.decode("utf-8"))
@@ -52,12 +69,11 @@ def handleClient(client, address,true_answer, question):
           game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
           print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
           client.send(bytes(game_over,"utf-8"))
+          ANSWER_MUTEX.release()
           client.close()
           
      except:
           print("client run out of time")     
-     ANSWER_MUTEX.release()
-     timout.join()
      global STOP_BROADCAST
      STOP_BROADCAST=True
 def Broadcasting():
@@ -80,8 +96,8 @@ def Broadcasting():
 def start_timer(client,address):
      print("timer started!")
      time.sleep(10)
-     ANSWER_MUTEX.acquire()
      try:  
+          ANSWER_MUTEX.acquire()
           if len(WINNERS)==0:
                game_over = "Game over!\n " + "It's a tie!" 
                client.send(bytes(game_over,"utf-8"))
@@ -91,6 +107,7 @@ def start_timer(client,address):
                game_over = "Game over!\n " + "The winner is: " + str(WINNERS[0]) 
                print("Game over!\n " + "The winner is: " + str(WINNERS[0]))
                client.send(bytes(game_over,"utf-8"))
+               ANSWER_MUTEX.release()
                client.close()
 
      except:
@@ -108,6 +125,7 @@ while(ALIVE):
      global STOP_BROADCAST
      STOP_BROADCAST=True
      SERVER_IP=socket.gethostbyname(socket.gethostname())
+     global TCP_PORT
      TCP_PORT=2019
      global WAIT_FOR_START
      WAIT_FOR_START = True
