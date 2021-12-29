@@ -6,7 +6,7 @@ import time
 import struct
 import colors
 
-# import scapy.all
+import scapy.all
 FORMAT = "utf-8"
 
 # unicorn photo file
@@ -85,7 +85,7 @@ def handleClient(client, address, true_answer, question):
 
 
 def Broadcasting():
-    address = socket.gethostbyname(socket.gethostname())
+    address = scapy.all.get_if_addr('eth1')
     sock = socket.socket(socket.AF_INET,
                          socket.SOCK_DGRAM,
                          socket.IPPROTO_UDP)
@@ -129,7 +129,8 @@ while (ALIVE):
     # argument definition and initialization
     global STOP_BROADCAST
     STOP_BROADCAST = True
-    SERVER_IP = socket.gethostbyname(socket.gethostname())
+    SERVER_IP =address = scapy.all.get_if_addr('eth1')
+
     global TCP_PORT
     TCP_PORT = 2019
     global WAIT_FOR_START
